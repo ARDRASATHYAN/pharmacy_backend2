@@ -1,5 +1,5 @@
 const express = require('express');
-const { createPurchase } = require('../controllers/purchaseController');
+const { createPurchase, getPurchaseInvoice, getPurchaseItems } = require('../controllers/purchaseController');
 const purchaseRouter = express.Router();
 
 
@@ -11,7 +11,10 @@ const purchaseRouter = express.Router();
 purchaseRouter.post('/', createPurchase);
 
 // // Get all purchases (optional: pagination, filters)
-// purchaseRouter.get('/purchases', getAllPurchases);
+purchaseRouter.get('/',getPurchaseInvoice);
+
+
+purchaseRouter.get('/items',getPurchaseItems);
 
 // // Get a single purchase by ID (with items)
 // purchaseRouter.get('/purchase/:id', getPurchaseById);

@@ -19,7 +19,9 @@ const supplierRouter = require('./routes/suppliersRoutes');
 const customerRouter = require('./routes/customerRoutes');
 const purchaseRouter = require('./routes/purchaseRoutes');
 const puchaseReturnRouter = require('./routes/purchaseReturnRoutes');
-// const startCleanupJob = require('./utils/cleanupTokens');
+const roleRouter = require('./routes/roleRoutes');
+const stockRouter = require('./routes/stockRoutes');
+const startCleanupJob = require('./utils/cleanupTokens');
 
 const app = express();
 
@@ -53,7 +55,7 @@ async function initializeDatabase() {
       console.log("Development: Models synchronized safely.");
     }
 
-    // startCleanupJob();
+    startCleanupJob();
 
   } catch (err) {
     console.error(" Database initialization failed:", err);
@@ -76,6 +78,8 @@ app.use('/api/supplier', supplierRouter);
 app.use('/api/customer', customerRouter);
 app.use('/api/purchase', purchaseRouter);
 app.use('/api/purchasereturn', puchaseReturnRouter);
+app.use('/api/role',roleRouter)
+app.use('/api/stock',stockRouter)
 
 
 // Start server

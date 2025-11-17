@@ -2,71 +2,19 @@ const { Op } = require('sequelize');
 const User = require("../models/UserModel");
 
 //  Get all users with search, filter, and pagination
-// exports.getAllUsers = async (req, res) => {
-//   try {
-//     const {
-//       search = '',        // for search (e.g., username, full_name)
-//       role,               // filter by role
-//       is_active,          // filter by status
-//       sortBy = 'user_id', // sorting field
-//       order = 'ASC'       // ASC / DESC
-//     } = req.query;
-
-//     const where = {};
-
-//     //  Search (by username or full_name)
-//     if (search) {
-//       where[Op.or] = [
-//         { username: { [Op.like]: `%${search}%` } },
-//         { full_name: { [Op.like]: `%${search}%` } },
-//       ];
-//     }
-
-//     //Role filter
-//     if (role) {
-//       where.role = role;
-//     }
-
-//     // Active / Inactive filter
-//     if (is_active !== undefined) {
-//       if (is_active === 'true' || is_active === '1') where.is_active = true;
-//       if (is_active === 'false' || is_active === '0') where.is_active = false;
-//     }
-
-    
-
-//     const { rows: users, count: total } = await User.findAndCountAll({
-//       where,
-//       order: [[sortBy, order.toUpperCase()]],
-//       attributes: { exclude: ['password_hash'] },
-//     });
-
-//     res.json({
-//       success: true,
-//       data: users,
-     
-//     });
-
-//   } catch (error) {
-//     console.error('Error fetching users:', error);
-//     res.status(500).json({ success: false, message: 'Error fetching users' });
-//   }
-// };
 exports.getAllUsers = async (req, res) => {
   try {
     const {
-      search = "",           // search by username / full_name
-      role,                  // filter by role
-      is_active,             // filter by status
-      sortBy = "user_id",    // sort field
-      order = "ASC",         // ASC / DESC
-      page = 1,              // current page
-      limit = 10             // number of rows per page (frontend controls)
+      search = '',        // for search (e.g., username, full_name)
+      role,               // filter by role
+      is_active,          // filter by status
+      sortBy = 'user_id', // sorting field
+      order = 'ASC'       // ASC / DESC
     } = req.query;
 
-    // Build filter
     const where = {};
 
+    //  Search (by username or full_name)
     if (search) {
       where[Op.or] = [
         { username: { [Op.like]: `%${search}%` } },
@@ -74,38 +22,91 @@ exports.getAllUsers = async (req, res) => {
       ];
     }
 
-    if (role) where.role = role;
-
-    if (is_active !== undefined) {
-      where.is_active = is_active === "true" || is_active === "1";
+    //Role filter
+    if (role) {
+      where.role = role;
     }
 
-    // Pagination
-    const offset = (page - 1) * limit;
+    // Active / Inactive filter
+    if (is_active !== undefined) {
+      if (is_active === 'true' || is_active === '1') where.is_active = true;
+      if (is_active === 'false' || is_active === '0') where.is_active = false;
+    }
 
-    // Fetch from DB
+    
+
     const { rows: users, count: total } = await User.findAndCountAll({
       where,
       order: [[sortBy, order.toUpperCase()]],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      attributes: { exclude: ["password"] }, // exclude password
+      attributes: { exclude: ['password_hash'] },
     });
 
     res.json({
       success: true,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      total,                     // total matching rows
-      totalPages: Math.ceil(total / limit),
       data: users,
+     
     });
 
   } catch (error) {
-    console.error("Error fetching users:", error);
-    res.status(500).json({ success: false, message: "Error fetching users" });
+    console.error('Error fetching users:', error);
+    res.status(500).json({ success: false, message: 'Error fetching users' });
   }
+
 };
+// exports.getAllUsers = async (req, res) => {
+//   try {
+//     const {
+//       search = "",           // search by username / full_name
+//       role,                  // filter by role
+//       is_active,             // filter by status
+//       sortBy = "user_id",    // sort field
+//       order = "ASC",         // ASC / DESC
+//       page = 1,              // current page
+//       limit = 10             // number of rows per page (frontend controls)
+//     } = req.query;
+
+//     // Build filter
+//     const where = {};
+
+//     if (search) {
+//       where[Op.or] = [
+//         { username: { [Op.like]: `%${search}%` } },
+//         { full_name: { [Op.like]: `%${search}%` } },
+//       ];
+//     }
+
+//     if (role) where.role = role;
+
+//     if (is_active !== undefined) {
+//       where.is_active = is_active === "true" || is_active === "1";
+//     }
+
+//     // Pagination
+//     const offset = (page - 1) * limit;
+
+//     // Fetch from DB
+//     const { rows: users, count: total } = await User.findAndCountAll({
+//       where,
+//       order: [[sortBy, order.toUpperCase()]],
+//       limit: parseInt(limit),
+//       offset: parseInt(offset),
+//       attributes: { exclude: ["password"] }, // exclude password
+//     });
+
+//     res.json({
+//       success: true,
+//       page: parseInt(page),
+//       limit: parseInt(limit),
+//       total,                     // total matching rows
+//       totalPages: Math.ceil(total / limit),
+//       data: users,
+//     });
+
+//   } catch (error) {
+//     console.error("Error fetching users:", error);
+//     res.status(500).json({ success: false, message: "Error fetching users" });
+//   }
+// };
 
 // Get user by ID
 exports.getUserById = async (req, res) => {

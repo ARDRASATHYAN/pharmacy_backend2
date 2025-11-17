@@ -4,7 +4,7 @@ const { Op } = require('sequelize');
 
 function startCleanupJob() {
   // Schedule: every day at 2 AM
-  cron.schedule('49 16 * * *', async () => {
+  cron.schedule('17 17 * * *', async () => {
     try {
       const deleted = await RefreshToken.destroy({
         where: {
