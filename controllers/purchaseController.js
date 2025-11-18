@@ -12,12 +12,12 @@ exports.createPurchase = async (req, res) => {
     const { store_id, supplier_id, created_by, invoice_no, items } = req.body;
 
     if (!items || !items.length) {
-      return res.status(400).json({ success: false, message: 'Items array is required.' });
+      return res.status(400).json({ success: false, message: "Items array is required." });
     }
 
     const invoiceNumber = invoice_no || `INV-${Date.now()}`;
 
-    // 1️⃣ Create purchase invoice
+    // 1️⃣ Create purchase invoice (initial totals = 0)
     const invoice = await PurchaseInvoice.create(
       {
         store_id,
@@ -43,19 +43,32 @@ exports.createPurchase = async (req, res) => {
         item_id,
         batch_no,
         expiry_date,
-        qty,
         purchase_rate,
         mrp,
         discount_percent = 0,
+        pack_qty = 0,      // ✅ from frontend
+        // qty ❌ we will NOT take qty from body
       } = i;
 
-      // Fetch item for HSN & GST
-      const item = await Item.findByPk(item_id, { include: ['hsn'], transaction: t });
-      if (!item) throw new Error(`Item ID ${item_id} not found`);
+      // 🔹 Fetch item for pack_size + HSN & GST
+      const item = await Item.findByPk(item_id, {
+        include: ["hsn"],
+        transaction: t,
+      });
+
+      if (!item) {
+        throw new Error(`Item ID ${item_id} not found`);
+      }
+
+      // ✅ pack_size from item master (e.g. 10 tabs per strip)
+      const pack_size = item.pack_size || 1;
+
+      // ✅ qty in UNITS (tablets/ml/etc.)
+      const qty = pack_qty * pack_size;
 
       const gstPercent = item.hsn?.gst_percent || 0;
 
-      // Calculate totals
+      // 🔢 Calculate totals
       const baseTotal = qty * purchase_rate;
       const discountAmount = baseTotal * (discount_percent / 100);
       const baseAfterDiscount = baseTotal - discountAmount;
@@ -73,7 +86,9 @@ exports.createPurchase = async (req, res) => {
           item_id,
           batch_no,
           expiry_date,
-          qty,
+          pack_qty,          // how many packs
+          qty,               // total units
+          pack_size,         // optional but useful
           purchase_rate,
           mrp,
           gst_percent: gstPercent,
@@ -83,7 +98,7 @@ exports.createPurchase = async (req, res) => {
         { transaction: t }
       );
 
-      // 4️⃣ Update store stock (centralized helper)
+      // 4️⃣ Update store stock
       await updateStoreStock({
         transaction: t,
         store_id,
@@ -110,15 +125,17 @@ exports.createPurchase = async (req, res) => {
 
     await t.commit();
 
-    return res
-      .status(201)
-      .json({ success: true, invoice_id: invoice.purchase_id });
+    return res.status(201).json({
+      success: true,
+      invoice_id: invoice.purchase_id,
+    });
   } catch (error) {
     await t.rollback();
-    console.error('Error creating purchase:', error);
+    console.error("Error creating purchase:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 exports.getPurchaseInvoice = async (req, res) => {
   try {
@@ -132,10 +149,18 @@ exports.getPurchaseInvoice = async (req, res) => {
 
 exports.getPurchaseItems = async (req, res) => {
   try {
-    const data = await PurchaseItems.findAll();
+    const data = await PurchaseItems.findAll({
+      include: [
+        {
+          model: PurchaseInvoice,
+          as: "invoice",          // 👈 MUST match the alias in belongsTo
+          attributes: ["invoice_no"],
+        },
+      ],
+    });
     res.json(data);
   } catch (error) {
-    console.error('Error fetching purchase items:', error);
-    res.status(500).json({ message: 'Error fetching purchase items' });
+    console.error("Error fetching purchase items:", error);
+    res.status(500).json({ message: "Error fetching purchase items" });
   }
 };
