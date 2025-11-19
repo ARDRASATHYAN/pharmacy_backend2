@@ -109,6 +109,7 @@ exports.createPurchase = async (req, res) => {
         purchase_rate,
         mrp,
         gst_percent: gstPercent,
+         discount_percent,
       });
     }
 
@@ -164,3 +165,41 @@ exports.getPurchaseItems = async (req, res) => {
     res.status(500).json({ message: "Error fetching purchase items" });
   }
 };
+
+exports.getPurchaseById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1) Get Invoice
+    const invoice = await PurchaseInvoice.findOne({
+      where: { purchase_id: id },
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ message: "Purchase invoice not found" });
+    }
+
+    // 2) Get Items
+    const items = await PurchaseItems.findAll({
+      where: { purchase_id: id },
+      include: [
+        {
+          model: Item,
+          as: "item",
+          attributes: ["item_name", "pack_size"],
+        },
+      ],
+    });
+
+    return res.json({
+      success: true,
+      invoice,
+      items,
+    });
+
+  } catch (error) {
+    console.error("Error fetching purchase by ID:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+

@@ -1,5 +1,5 @@
 const express = require('express');
-const { createPurchase, getPurchaseInvoice, getPurchaseItems } = require('../controllers/purchaseController');
+const { createPurchase, getPurchaseInvoice, getPurchaseItems, getPurchaseById } = require('../controllers/purchaseController');
 const purchaseRouter = express.Router();
 
 
@@ -17,7 +17,7 @@ purchaseRouter.get('/',getPurchaseInvoice);
 purchaseRouter.get('/items',getPurchaseItems);
 
 // // Get a single purchase by ID (with items)
-// purchaseRouter.get('/purchase/:id', getPurchaseById);
+purchaseRouter.get('/purchase/:id', getPurchaseById);
 
 // // Update purchase (optional)
 // purchaseRouter.put('/purchase/:id', updatePurchase);

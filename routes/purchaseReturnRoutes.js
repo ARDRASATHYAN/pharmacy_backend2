@@ -1,5 +1,5 @@
 const express = require('express');
-const { createPurchaseReturn } = require('../controllers/purchaseReturnController');
+const { createPurchaseReturn, getPurchaseReturn, getPurchaseReturnItems } = require('../controllers/purchaseReturnController');
 const puchaseReturnRouter = express.Router();
 
 
@@ -7,7 +7,10 @@ const puchaseReturnRouter = express.Router();
 puchaseReturnRouter.post('/', createPurchaseReturn);
 
 // // Optional: Get all purchase returns
-// puchaseReturnRouter.get('/', PurchaseReturnController.getAllPurchaseReturns);
+puchaseReturnRouter.get('/', getPurchaseReturn);
+
+
+ puchaseReturnRouter.get('/items',getPurchaseReturnItems);
 
 // // Optional: Get a purchase return by ID (with items)
 // puchaseReturnRouter.get('/:id', PurchaseReturnController.getPurchaseReturnById);

@@ -163,31 +163,23 @@
 // // };
 
 
+
 const PurchaseReturn = require('../models/PurchaseReturnModel');
 const PurchaseReturnItem = require('../models/PurchaseReturnItemModel');
+const PurchaseItems = require('../models/PurchaseItemsModel');
 const { updateStoreStock } = require('../services/stockService');
 
 exports.createPurchaseReturn = async (req, res) => {
   const t = await PurchaseReturn.sequelize.transaction();
 
   try {
-    const {
-      purchase_id,
-      store_id,
-      created_by,
-      return_date,
-      reason,        // overall note
-      items,
-    } = req.body;
+    const { purchase_id, store_id, created_by, return_date, reason, items } = req.body;
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Items array is required.',
-      });
+    if (!items?.length) {
+      return res.status(400).json({ success: false, message: "Items array is required." });
     }
 
-    // 1️⃣ Create purchase return header
+    // 1️⃣ Create return header
     const purchaseReturn = await PurchaseReturn.create(
       {
         purchase_id,
@@ -195,33 +187,50 @@ exports.createPurchaseReturn = async (req, res) => {
         created_by,
         return_date: return_date || new Date(),
         reason,
-        total_amount: 0, // will update after looping items
+        total_amount: 0,
       },
       { transaction: t }
     );
 
     let totalAmount = 0;
 
-    // 2️⃣ Loop through returned items
+    // 2️⃣ Loop items
     for (const i of items) {
-      const {
-        item_id,
-        batch_no,
-        qty,
-        rate,
-        expiry_date,      // optional (if column exists)
-        item_reason,      // optional per-item reason
-      } = i;
+      const { item_id, batch_no, qty, item_reason } = i;
 
-      // Basic validation per item
-      if (!item_id || !batch_no || !qty || !rate) {
-        throw new Error('item_id, batch_no, qty and rate are required for each return item');
+      if (!item_id || !batch_no || !qty) {
+        throw new Error("item_id, batch_no, qty are required.");
       }
 
-      const amount = qty * rate;
-      totalAmount += amount;
+      // 3️⃣ Fetch original purchase item row
+      const purchaseItem = await PurchaseItems.findOne({
+        where: { purchase_id, item_id, batch_no },
+        transaction: t,
+      });
 
-      // 3️⃣ Create purchase return item row
+      if (!purchaseItem) {
+        throw new Error(`No purchase item found for item ${item_id}, batch ${batch_no}`);
+      }
+
+      const purchase_rate = purchaseItem.purchase_rate;
+      const discount_percent = purchaseItem.discount_percent || 0;
+      const gst_percent = purchaseItem.gst_percent || 0;
+
+      // If pack-size logic → qty is already UNITS  
+      // else: qty is units already
+
+      // 4️⃣ Correct purchase-return calculation
+      const baseAmount = qty * purchase_rate;
+
+      const discountAmount = baseAmount * (discount_percent / 100);
+      const baseAfterDiscount = baseAmount - discountAmount;
+
+      const gstAmount = baseAfterDiscount * (gst_percent / 100);
+      const totalItemAmount = baseAfterDiscount + gstAmount;
+
+      totalAmount += totalItemAmount;
+
+      // 5️⃣ Save purchase return item
       await PurchaseReturnItem.create(
         {
           return_id: purchaseReturn.return_id,
@@ -230,33 +239,32 @@ exports.createPurchaseReturn = async (req, res) => {
           item_id,
           batch_no,
           qty,
-          rate,
-          amount,
-          // only include these if your model has these fields:
-          expiry_date: expiry_date || null,
+          rate: purchase_rate,            // ✔ original rate
+          discount_percent,
+          gst_percent,
+          amount: totalItemAmount,        // ✔ final amount including GST
           reason: item_reason || null,
+          expiry_date: purchaseItem.expiry_date,
         },
         { transaction: t }
       );
 
-      // 4️⃣ Update store stock (❗stock OUT for purchase return)
+      // 6️⃣ Reduce stock (OUT)
       await updateStoreStock({
         transaction: t,
         store_id,
         item_id,
         batch_no,
-        expiry_date: expiry_date || null,
-        qty_change: -qty,    // negative → reduce stock
+        qty_change: -qty, // OUT
       });
     }
 
-    // 5️⃣ Update total_amount in header
+    // 7️⃣ Update total
     await purchaseReturn.update(
       { total_amount: totalAmount },
       { transaction: t }
     );
 
-    // ✅ Commit everything
     await t.commit();
 
     return res.status(201).json({
@@ -264,12 +272,33 @@ exports.createPurchaseReturn = async (req, res) => {
       return_id: purchaseReturn.return_id,
       total_amount: totalAmount,
     });
+
   } catch (err) {
     await t.rollback();
-    console.error('Error creating purchase return:', err);
-    return res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    console.error('Purchase Return Error:', err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+exports.getPurchaseReturn= async (req, res) => {
+  try {
+    const data = await PurchaseReturn.findAll();
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching purchase invoices:', error);
+    res.status(500).json({ message: 'Error fetching purchase invoices' });
+  }
+};
+
+exports.getPurchaseReturnItems = async (req, res) => {
+  try {
+    const data = await PurchaseReturnItem.findAll();
+    res.json(data);
+  } catch (error) {
+    console.error("Error fetching purchase items:", error);
+    res.status(500).json({ message: "Error fetching purchase items" });
+  }
+};
+
+
+

@@ -2,6 +2,13 @@
 const { Sequelize } = require('sequelize');
 const StoreStock = require('../models/StoreStockModel');
 
+function computeSalesRate(mrp, discount_percent = 0) {
+  if (!mrp) return null;
+  return mrp - (mrp * (discount_percent / 100));
+}
+
+
+
 async function updateStoreStock({
   transaction,
   store_id,
@@ -12,7 +19,11 @@ async function updateStoreStock({
   purchase_rate = null,
   mrp = null,
   gst_percent = null,
+   discount_percent = 0, 
 }) {
+
+  const sale_rate = computeSalesRate(mrp, discount_percent);
+
   // Stock IN (purchase, sale return)
   if (qty_change > 0) {
     const existingStock = await StoreStock.findOne({
@@ -30,6 +41,8 @@ async function updateStoreStock({
           mrp: mrp ?? existingStock.mrp,
           gst_percent: gst_percent ?? existingStock.gst_percent,
           expiry_date: expiry_date ?? existingStock.expiry_date,
+
+          sale_rate: sale_rate ?? existingStock.sale_rate
         },
         { transaction }
       );
@@ -44,6 +57,7 @@ async function updateStoreStock({
           purchase_rate,
           mrp,
           gst_percent,
+           sale_rate
         },
         { transaction }
       );
