@@ -22,6 +22,8 @@ const puchaseReturnRouter = require('./routes/purchaseReturnRoutes');
 const roleRouter = require('./routes/roleRoutes');
 const stockRouter = require('./routes/stockRoutes');
 const startCleanupJob = require('./utils/cleanupTokens');
+const salesRouter = require('./routes/salesRoutes');
+const salesReturnRouter = require('./routes/salesReturnRoutes');
 
 const app = express();
 
@@ -80,6 +82,8 @@ app.use('/api/purchase', purchaseRouter);
 app.use('/api/purchasereturn', puchaseReturnRouter);
 app.use('/api/role',roleRouter)
 app.use('/api/stock',stockRouter)
+app.use("/api/sales", salesRouter); 
+app.use("/api/sales-returns", salesReturnRouter); 
 
 
 // Start server
