@@ -198,3 +198,14 @@ exports.getSalesReturns = async (req, res) => {
     res.status(500).json({ message: "Error fetching sales returns" });
   }
 };
+
+
+exports.getSalesReturnsItems = async (req, res) => {
+  try {
+    const data = await SalesReturnItem.findAll();
+    res.json(data);
+  } catch (err) {
+    console.error("Error fetching sales returns:", err);
+    res.status(500).json({ message: "Error fetching sales returns" });
+  }
+};

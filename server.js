@@ -24,6 +24,8 @@ const stockRouter = require('./routes/stockRoutes');
 const startCleanupJob = require('./utils/cleanupTokens');
 const salesRouter = require('./routes/salesRoutes');
 const salesReturnRouter = require('./routes/salesReturnRoutes');
+const damagedStockRouter = require('./routes/damagedStockRoutes');
+const excessStockRouter = require('./routes/excessStockRoutes');
 
 const app = express();
 
@@ -84,6 +86,8 @@ app.use('/api/role',roleRouter)
 app.use('/api/stock',stockRouter)
 app.use("/api/sales", salesRouter); 
 app.use("/api/sales-returns", salesReturnRouter); 
+app.use("/api/damaged-stock", damagedStockRouter);
+app.use("/api/excess-stock", excessStockRouter);
 
 
 // Start server

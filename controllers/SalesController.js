@@ -171,7 +171,7 @@ exports.createSale = async (req, res) => {
 };
 
 
-// ✅ (Optional) List sales
+// (Optional) List sales
 exports.getAllSales = async (req, res) => {
   try {
     const data = await SalesInvoices.findAll({
@@ -188,6 +188,19 @@ exports.getAllSales = async (req, res) => {
     res.status(500).json({ message: "Error fetching sales" });
   }
 };
+
+exports.getAllSalesItems = async (req, res) => {
+  try {
+    const data = await SalesItems.findAll({
+       // or updated_at / sale_item_id
+    });
+    res.json(data);
+  } catch (err) {
+    console.error("Error fetching sales items:", err);
+    res.status(500).json({ message: "Error fetching sales items" });
+  }
+};
+
 
 
 // GET /sales/:sale_id/items
